@@ -31,50 +31,84 @@ def train_with_argas( args ):
     args.outdir     =  './Example_test/'
     model_file      =  os.path.join( args.outdir, 'model_DCCA.pth.tar' )
 
-    args.File1      =  os.path.join( args.workdir, 'scRNA_seq_SNARE.tsv' )
-    args.File2      =  os.path.join( args.workdir, 'scATAC_seq_SNARE.txt' ) 
-    args.File3      =  os.path.join( args.workdir, 'cell_metadata.txt' ) 
+    RNA_path = '/content/Replication_DDCA/data/PBMC/RNA.h5ad'
+    ATAC_path = '/content/Replication_DDCA/data/PBMC/ATAC.h5ad'
 
-    adata, adata1, train_index, test_index, label_ground_truth, _ = read_dataset( File1 = args.File1,
-                                                                                  File2 = args.File2,
-                                                                                  File3 = args.File3,
-                                                                                  File4 = None,
-                                                                                  transpose = True, 
+    adata, adata1, train_index, test_index, label_ground_truth, _ = read_dataset( File_RNA = RNA_path,
+                                                                                  File_ATAC = ATAC_path,
                                                                                   test_size_prop = 0.1,
-                                                                                  state = 1 )
+                                                                                  state = 1,
+                                                                                  top_n_rna = 1000,
+                                                                                  top_n_atac = 1000 )
     adata  = normalize( adata, filter_min_counts=True, 
                         size_factors=True, normalize_input=False, 
                         logtrans_input=True ) 
     adata1 = normalize( adata1, filter_min_counts=True, 
                         size_factors=False, normalize_input=False, 
-                        logtrans_input=False ) 
+                        logtrans_input=False )
     
+    common = adata.obs_names.intersection(adata1.obs_names)
+    if len(common) < max(adata.n_obs, adata1.n_obs):
+        print(f"[Warning] Sau normalize: RNA={adata.n_obs} | ATAC={adata1.n_obs} → còn {len(common)} cells")
+
+        # O(1) lookup
+        rna_name_to_idx = {name: i for i, name in enumerate(adata.obs_names)}
+
+        rna_idx     = np.array([rna_name_to_idx[c] for c in common])
+        rna_idx_set = set(rna_idx.tolist())
+        old_to_new  = {old: new for new, old in enumerate(rna_idx)}
+
+        adata  = adata[common].copy()
+        adata1 = adata1[common].copy()
+
+        # Remap train/test index
+        train_index = np.array([old_to_new[i] for i in train_index if i in rna_idx_set])
+        test_index  = np.array([old_to_new[i] for i in test_index  if i in rna_idx_set])
+
+    print(f"Train: {len(train_index)} | Test: {len(test_index)} | Total: {adata.n_obs}")
+    print(f"adata.raw shape : {adata.raw.X.shape}")
+    print(f"adata1.raw shape: {adata1.raw.X.shape}")
+        
+    print("RNA min ", adata.X.min())
+    print("RNA max ", adata.X.max())
+    print("RNA raw min ", adata.raw.X.min())
+    print("RNA raw max ", adata.raw.X.max())
+    
+    print("ATAC min ", adata1.X.min())
+    print("ATAC max ", adata1.X.max())
+    print("ATAC raw min ", adata1.raw.X.min())
+    print("ATAC raw max ", adata1.raw.X.max())
+
+    print(adata.shape)
+
+    print(adata.X.shape)
+     
     Nsample1, Nfeature1   =  np.shape( adata.X )
     Nsample2, Nfeature2   =  np.shape( adata1.X )
 
-    train           = data_utils.TensorDataset( torch.from_numpy( adata[train_index].X ),
-                                                torch.from_numpy( adata.raw[train_index].X ), 
+    train           = data_utils.TensorDataset( torch.from_numpy( adata[train_index].X.toarray() ),
+                                                torch.from_numpy( adata.raw[train_index].X.toarray() ), 
                                                 torch.from_numpy( adata.obs['size_factors'][train_index].values ),
-                                                torch.from_numpy( adata1[train_index].X ),
-                                                torch.from_numpy( adata1.raw[train_index].X ), 
+                                                torch.from_numpy( adata1[train_index].X.toarray() ),
+                                                torch.from_numpy( adata1.raw[train_index].X.toarray() ), 
                                                 torch.from_numpy( adata1.obs['size_factors'][train_index].values ))
 
     train_loader    = data_utils.DataLoader( train, batch_size = args.batch_size, shuffle = True )
 
-    test            = data_utils.TensorDataset( torch.from_numpy( adata[test_index].X ),
-                                                torch.from_numpy( adata.raw[test_index].X ), 
+    test            = data_utils.TensorDataset( torch.from_numpy( adata[test_index].X.toarray() ),
+                                                torch.from_numpy( adata.raw[test_index].X.toarray() ), 
                                                 torch.from_numpy( adata.obs['size_factors'][test_index].values ),
-                                                torch.from_numpy( adata1[test_index].X ),
-                                                torch.from_numpy( adata1.raw[test_index].X ), 
+                                                torch.from_numpy( adata1[test_index].X.toarray() ),
+                                                torch.from_numpy( adata1.raw[test_index].X.toarray() ), 
                                                 torch.from_numpy( adata1.obs['size_factors'][test_index].values ) )
 
     test_loader     = data_utils.DataLoader( test, batch_size = len(test_index), shuffle = False )
     
-    total           = data_utils.TensorDataset( torch.from_numpy( adata.X  ),
-                                                torch.from_numpy( adata.raw.X ),
+    total           = data_utils.TensorDataset( torch.from_numpy( adata.X.toarray() ),
+                                                torch.from_numpy( adata.raw.X.toarray() ),
                                                 torch.from_numpy( adata.obs['size_factors'].values ),
-                                                torch.from_numpy( adata1.X  ),
-                                                torch.from_numpy( adata1.raw.X ),
+                                                torch.from_numpy( adata1.X.toarray() ),
+                                                torch.from_numpy( adata1.raw.X.toarray() ),
                                                 torch.from_numpy( adata1.obs['size_factors'].values ) )
     total_loader    = data_utils.DataLoader( total, batch_size = (len(train_index)+ len(test_index)) , shuffle = False )
 

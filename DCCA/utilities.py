@@ -72,122 +72,86 @@ def parameter_setting():
     
     return parser
 
-def read_dataset( File1 = None, File2 = None, File3 = None, File4 = None, transpose = True, test_size_prop = 0.15, state = 0, 
-                  format_rna="table", formar_epi = "table" ):
+def read_dataset( File_RNA = None, File_ATAC = None, test_size_prop = 0.15, state = 0, 
+                  top_n_rna = 1000, top_n_atac = 1000 ):
     # read single-cell multi-omics data together
-
-    ### raw reads count of scRNA-seq data
-    adata = adata1 = None
-
-    if File1 is not None:
-        if format_rna == "table":
-            adata  = sc.read(File1)
-        else: # 10X format
-            adata  = sc.read_mtx(File1)
-           
-        if transpose:
-            adata  = adata.transpose()
-
-    ##$ the binarization data for scEpigenomics file
-    if File2 is not None:
-        if formar_epi == "table":
-            adata1  = sc.read( File2 )
-        else:# 10X format
-            adata1  = sc.read_mtx(File2)
-
-        if transpose: 
-            adata1  = adata1.transpose()
+    """
+    Đọc dữ liệu multimodal từ file .h5ad (đã preprocessing, dạng cells x features).
     
-    ### File3 and File4 for cell group information of scRNA-seq and scEpigenomics data
-    label_ground_truth = []
-    label_ground_truth1 = []
+    Parameters
+    ----------
+    File_RNA  : str - đường dẫn tới file RNA.h5ad
+    File_ATAC : str - đường dẫn tới file ATAC.h5ad
+    test_size_prop : float - tỉ lệ tập test (mặc định 0.15)
 
-    if state == 0 :
-        if File3 is not None:
-            Data2  = pd.read_csv( File3, header=0, index_col=0 )
-            label_ground_truth =  Data2['Group'].values
+    Returns
+    -------
+    adata, adata1, adata2, train_idx, test_idx, label_ground_truth
+    (adata2 = None vì chỉ có 2 modality)
+    """
 
-        else:
-            label_ground_truth =  np.ones( len( adata.obs_names ) )
+    # ── 1. Đọc file .h5ad (đã là cells × features, không cần transpose) ──────
+    adata  = sc.read(File_RNA)   # RNA
+    adata1 = sc.read(File_ATAC)  # ATAC
+    print(f"Đọc xong — RNA: {adata.shape} | ATAC: {adata1.shape}")
 
-        if File4 is not None:
-            Data2 = pd.read_csv( File4, header=0, index_col=0 )
-            label_ground_truth1 = Data2['Group'].values
+    # Feature selection RNA: HVG (seurat_v3) ────────────────────────────
+    print(f"\n[RNA] Chọn top {top_n_rna} HVGs (seurat_v3) — shape ban đầu: {adata.shape}")
 
-        else:
-            label_ground_truth1 =  np.ones( len( adata.obs_names ) )
+    sc.pp.highly_variable_genes(
+        adata,
+        n_top_genes=top_n_rna,
+        flavor="seurat_v3",
+        subset=False
+    )
+    adata = adata[:, adata.var["highly_variable"].values].copy()
 
-    elif state == 1:
-        if File3 is not None:
-            Data2 = pd.read_table( File3, header=0, index_col=0 )
-            label_ground_truth = Data2['cell_line'].values
-        else:
-            label_ground_truth =  np.ones( len( adata.obs_names ) )
+    # Normalize sau khi giảm chiều
+    # sc.pp.normalize_total(adata, target_sum=1e4)
+    # sc.pp.log1p(adata)
+    print(f"[RNA] Sau HVG + normalize: {adata.shape}")
 
-        if File4 is not None:
-            Data2 = pd.read_table( File4, header=0, index_col=0 )
-            label_ground_truth1 = Data2['cell_line'].values
-        else:
-            label_ground_truth1 =  np.ones( len( adata.obs_names ) )
+    # Feature selection ATAC: top peaks by total count ──────────────────
+    print(f"\n[ATAC] Chọn top {top_n_atac} peaks by total count — shape ban đầu: {adata1.shape}")
 
-    elif state == 3:
-        if File3 is not None:
-            Data2 = pd.read_table( File3, header=0, index_col=0 )
-            label_ground_truth = Data2['Group'].values
-        else:
-            label_ground_truth =  np.ones( len( adata.obs_names ) )
+    counts      = np.asarray(adata1.X.sum(axis=0)).ravel()
+    top_indices = np.argpartition(counts, -top_n_atac)[-top_n_atac:]
+    top_indices = np.sort(top_indices)               # giữ thứ tự gốc
+    adata1      = adata1[:, top_indices].copy()
+    print(f"[ATAC] Sau lọc peaks: {adata1.shape}")
 
-        if File4 is not None:
-            Data2 = pd.read_table( File4, header=0, index_col=0 )
-            label_ground_truth1 = Data2['Group'].values
-        else:
-            label_ground_truth1 =  np.ones( len( adata.obs_names ) )
-
+    # ── 2. Lấy ground truth từ cột cell_type ─────────────────────────────────
+    if 'cell_type' in adata.obs.columns:
+        label_ground_truth = adata.obs['cell_type'].values.tolist()
     else:
-        if File3 is not None:
-            Data2 = pd.read_table( File3, header=0, index_col=0 )
-            label_ground_truth = Data2['Cluster'].values
-        else:
-            label_ground_truth =  np.ones( len( adata.obs_names ) )
+        print("[Warning] Không tìm thấy cột 'cell_type' trong adata.obs → gán nhãn 1 cho tất cả.")
+        label_ground_truth = np.ones(adata.n_obs)
 
-        if File4 is not None:
-            Data2 = pd.read_table( File4, header=0, index_col=0 )
-            label_ground_truth1 = Data2['Cluster'].values
-        else:
-            label_ground_truth1 =  np.ones( len( adata.obs_names ) )
-
-    #split datasets into training and testing sets
-    if test_size_prop > 0 :
-        train_idx, test_idx = train_test_split(np.arange(adata.n_obs), 
-                                               test_size = test_size_prop, 
-                                               random_state = 200)
+    # ── 3. Train / Test split ─────────────────────────────────────────────────
+    if test_size_prop > 0:
+        train_idx, test_idx = train_test_split(
+            np.arange(adata.n_obs),
+            test_size=test_size_prop,
+            random_state=200
+        )
         spl = pd.Series(['train'] * adata.n_obs)
-        spl.iloc[test_idx]  = 'test'
-        adata.obs['split']  = spl.values
-        
-        if File2 is not None:
-            adata1.obs['split'] = spl.values
+        spl.iloc[test_idx] = 'test'
     else:
-        train_idx, test_idx = list(range( adata.n_obs )), list(range( adata.n_obs ))
+        train_idx = list(range(adata.n_obs))
+        test_idx  = list(range(adata.n_obs))
         spl = pd.Series(['train'] * adata.n_obs)
-        adata.obs['split']       = spl.values
 
-        if File2 is not None:
-            adata1.obs['split']  = spl.values
-        
-    adata.obs['split'] = adata.obs['split'].astype('category')
-    adata.obs['Group'] = label_ground_truth
-    adata.obs['Group'] = adata.obs['Group'].astype('category')
-    
-    if File2 is not None:
-        adata1.obs['split'] = adata1.obs['split'].astype('category')
-        adata1.obs['Group'] = label_ground_truth
-        adata1.obs['Group'] = adata1.obs['Group'].astype('category')
-
+    # ── 4. Gán metadata split + Group vào obs ─────────────────────────────────
+    for ad in [adata, adata1]:
+        ad.obs['split'] = spl.values
+        ad.obs['split'] = ad.obs['split'].astype('category')
+        ad.obs['Group'] = label_ground_truth   # giữ tên 'Group' để tương thích với pipeline gốc
+        ad.obs['Group'] = ad.obs['Group'].astype('category')
+	
     print('Successfully preprocessed {} genes and {} cells.'.format(adata.n_vars, adata.n_obs))
     
     ### here, adata with cells * features
-    return adata, adata1, train_idx, test_idx, label_ground_truth, label_ground_truth1
+    return adata, adata1, train_idx, test_idx, label_ground_truth, None
 
 def normalize( adata, filter_min_counts=True, size_factors=True, 
                normalize_input=False, logtrans_input=True):
