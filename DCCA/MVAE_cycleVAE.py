@@ -126,7 +126,7 @@ class VAE(nn.Module):
             Normal(mean_1, torch.exp(0.5 * logvar_1)),   # std = exp(0.5 * logvar)
             Normal(mean, torch.sqrt(scale)) # std = sqrt(var)
         ).sum(dim=1)
-        
+
         atten_loss1 = torch.tensor(0.0)
         if latent_pre is not None and latent_pre_hidden is not None:
 
@@ -181,7 +181,7 @@ class VAE(nn.Module):
 
                 if args.use_cuda:
                     X1, X1_raw, size_factor1 = X1.to("cuda:0"), X1_raw.to("cuda:0"), size_factor1.to("cuda:0")
-                    X2, X2_raw, size_factor2 = X2.to("cuda:1"), X2_raw.to("cuda:1"), size_factor2.to("cuda:1")
+                    X2, X2_raw, size_factor2 = X2.to("cuda:0"), X2_raw.to("cuda:0"), size_factor2.to("cuda:0")
                 
                 X1, X1_raw, size_factor1 = Variable( X1 ), Variable( X1_raw ), Variable( size_factor1 )
                 X2, X2_raw, size_factor2 = Variable( X2 ), Variable( X2_raw ), Variable( size_factor2 )
@@ -220,10 +220,10 @@ class VAE(nn.Module):
                         else:
                             #transfer representation form scRNA-seq model to scEpigenomics model
                             result_2  = model_pre( X1, size_factor1)
-                            latent_z1 = result_2["latent_z1"].to("cuda:1")
-                            hidden_1  = result_2["hidden"].to("cuda:1")
-                            mean_1    = result_2["mean_1"].to("cuda:1")
-                            logvar_1  = result_2["logvar_1"].to("cuda:1")
+                            latent_z1 = result_2["latent_z1"].to("cuda:0")
+                            hidden_1  = result_2["hidden"].to("cuda:0")
+                            mean_1    = result_2["mean_1"].to("cuda:0")
+                            logvar_1  = result_2["logvar_1"].to("cuda:0")
 
                             loss1, kl_divergence_z, atten_loss1 = self.return_loss( X2, X2_raw, latent_z1, mean_1, logvar_1, hidden_1,
                                                                                     size_factor2, criterion, attention_loss)
@@ -241,10 +241,10 @@ class VAE(nn.Module):
                         else:
                             #transfer representation from scRNA-seq model to scEpigenomics model
                             result_2  = model_pre( X1, size_factor1)
-                            latent_z1 = result_2["latent_z1"].to("cuda:1")
-                            hidden_1  = result_2["hidden"].to("cuda:1")
-                            mean_1    = result_2["mean_1"].to("cuda:1")
-                            logvar_1  = result_2["logvar_1"].to("cuda:1")
+                            latent_z1 = result_2["latent_z1"].to("cuda:0")
+                            hidden_1  = result_2["hidden"].to("cuda:0")
+                            mean_1    = result_2["mean_1"].to("cuda:0")
+                            logvar_1  = result_2["logvar_1"].to("cuda:0")
 
                             loss1, kl_divergence_z, atten_loss1 = self.return_loss( X2, X2_raw, latent_z1, mean_1, logvar_1, hidden_1, 
                                                                                     size_factor2, criterion, attention_loss)
@@ -281,7 +281,7 @@ class VAE(nn.Module):
 
                         if args.use_cuda:
                             X1, X1_raw, size_factor1 = X1.to("cuda:0"), X1_raw.to("cuda:0"), size_factor1.to("cuda:0")
-                            X2, X2_raw, size_factor2 = X2.to("cuda:1"), X2_raw.to("cuda:1"), size_factor2.to("cuda:1")
+                            X2, X2_raw, size_factor2 = X2.to("cuda:0"), X2_raw.to("cuda:0"), size_factor2.to("cuda:0")
 
                         X1, X1_raw, size_factor1 = Variable( X1 ), Variable( X1_raw ), Variable( size_factor1 )
                         X2, X2_raw, size_factor2 = Variable( X2 ), Variable( X2_raw ), Variable( size_factor2 )
@@ -313,10 +313,10 @@ class VAE(nn.Module):
 
                                 else:
                                     result_2  = model_pre( X1, size_factor1)
-                                    latent_z1 = result_2["latent_z1"].to("cuda:1")
-                                    hidden_1  = result_2["hidden"].to("cuda:1")
-                                    mean_1    = result_2["mean_1"].to("cuda:1")
-                                    logvar_1  = result_2["logvar_1"].to("cuda:1")
+                                    latent_z1 = result_2["latent_z1"].to("cuda:0")
+                                    hidden_1  = result_2["hidden"].to("cuda:0")
+                                    mean_1    = result_2["mean_1"].to("cuda:0")
+                                    logvar_1  = result_2["logvar_1"].to("cuda:0")
 
                                     loss1, kl_divergence_z, atten_loss1 = self.return_loss( X2, X2_raw, latent_z1, mean_1, logvar_1, hidden_1,
                                                                                             size_factor2, criterion, attention_loss)
@@ -332,10 +332,10 @@ class VAE(nn.Module):
 
                                 else:
                                     result_2  = model_pre( X1, size_factor1)
-                                    latent_z1 = result_2["latent_z1"].to("cuda:1")
-                                    hidden_1  = result_2["hidden"].to("cuda:1")
-                                    mean_1    = result_2["mean_1"].to("cuda:1")
-                                    logvar_1  = result_2["logvar_1"].to("cuda:1")
+                                    latent_z1 = result_2["latent_z1"].to("cuda:0")
+                                    hidden_1  = result_2["hidden"].to("cuda:0")
+                                    mean_1    = result_2["mean_1"].to("cuda:0")
+                                    logvar_1  = result_2["logvar_1"].to("cuda:0")
 
                                     loss1, kl_divergence_z, atten_loss1 = self.return_loss( X2, X2_raw, latent_z1, mean_1, logvar_1, hidden_1, 
                                                                                             size_factor2, criterion, attention_loss)
@@ -451,7 +451,7 @@ class DCCA(nn.Module):
 
         if self.args.use_cuda:
             self.model1.to("cuda:0")
-            self.model2.to("cuda:1")
+            self.model2.to("cuda:0")
 
         used_cycle = 0
 
@@ -544,7 +544,7 @@ class DCCA(nn.Module):
 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
@@ -581,7 +581,7 @@ class DCCA(nn.Module):
         for batch_idx, ( X1, _, size_factor1, X2, _, size_factor2 ) in enumerate(total_loader): 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
@@ -621,7 +621,7 @@ class DCCA(nn.Module):
         for batch_idx, ( X1, _, size_factor1, X2, _, size_factor2 ) in enumerate(total_loader): 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
@@ -654,7 +654,7 @@ class DCCA(nn.Module):
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
 
             result1          = self.model1( X1, size_factor1)
-            latent_z1        = result1['latent_z1'].to("cuda:1")
+            latent_z1        = result1['latent_z1'].to("cuda:0")
             recons_y         = self.model2.decoder( latent_z1 )
 
         return recons_y.data.cpu().numpy()

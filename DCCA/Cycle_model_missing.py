@@ -182,7 +182,7 @@ class VAE(nn.Module):
         output = torch.cat(output).numpy()
         return output
 
-    def fit_cycle( self, train_loader, test_loader, model_pre, args, criterion, cycle, state=0, attention_loss = "AT", cuda_devie1 = "cuda:0", cuda_devie2 = "cuda:1" ):
+    def fit_cycle( self, train_loader, test_loader, model_pre, args, criterion, cycle, state=0, attention_loss = "AT", cuda_devie1 = "cuda:0", cuda_devie2 = "cuda:0" ):
         # state is used for check if this training is the first initilization of scRNA-seq model
         params  = filter(lambda p: p.requires_grad, self.parameters())
 
@@ -410,7 +410,7 @@ class DCCA_missing(nn.Module):
 
         if self.args.use_cuda:
             self.model1.to("cuda:0")
-            self.model2.to("cuda:1")
+            self.model2.to("cuda:0")
 
         used_cycle = 0
         if self.ground_truth is not None:
@@ -423,19 +423,19 @@ class DCCA_missing(nn.Module):
                 self.model2.eval()
 
                 if used_cycle == 0:
-                    self.model1.fit_cycle( train_loader_inter, test_loader_inter, self.model2, self.args, self.attention, used_cycle, 2, self.attention_loss, "cuda:0" , "cuda:1" ) 
+                    self.model1.fit_cycle( train_loader_inter, test_loader_inter, self.model2, self.args, self.attention, used_cycle, 2, self.attention_loss, "cuda:0" , "cuda:0" ) 
 
                 else:
-                    self.model1.fit_cycle( train_loader_inter, test_loader_inter, self.model2, self.args, self.attention, used_cycle, 0, self.attention_loss, "cuda:0" , "cuda:1" ) 
+                    self.model1.fit_cycle( train_loader_inter, test_loader_inter, self.model2, self.args, self.attention, used_cycle, 0, self.attention_loss, "cuda:0" , "cuda:0" ) 
             else:
                 self.model1.eval()
 
                 if used_cycle == 1:
                     if self.attention_loss is not None:
-                        self.model2.fit_cycle( train_loader_inter, test_loader_inter, self.model1, self.args, self.attention, used_cycle, 0, self.attention_loss, "cuda:0" , "cuda:1")
+                        self.model2.fit_cycle( train_loader_inter, test_loader_inter, self.model1, self.args, self.attention, used_cycle, 0, self.attention_loss, "cuda:0" , "cuda:0")
 
                 else:
-                    self.model2.fit_cycle( train_loader_inter, test_loader_inter, self.model1, self.args, self.attention, used_cycle, 0, self.attention_loss, "cuda:0" , "cuda:1")
+                    self.model2.fit_cycle( train_loader_inter, test_loader_inter, self.model1, self.args, self.attention, used_cycle, 0, self.attention_loss, "cuda:0" , "cuda:0")
                     
             if self.ground_truth is not None:
                 NMI_score1_t, ARI_score1_t, NMI_score2_t, ARI_score2_t = self.evluation_metrics( total_loader )
@@ -464,7 +464,7 @@ class DCCA_missing(nn.Module):
 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
@@ -503,7 +503,7 @@ class DCCA_missing(nn.Module):
         for batch_idx, ( X1, _, size_factor1, X2, _, size_factor2 ) in enumerate(total_loader): 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
@@ -545,8 +545,8 @@ class DCCA_missing(nn.Module):
                 size_factor1 = size_factor1.to("cuda:0")
 
             else:
-                X1           = X1.to("cuda:1")
-                size_factor1 = size_factor1.to("cuda:1")
+                X1           = X1.to("cuda:0")
+                size_factor1 = size_factor1.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
 
@@ -582,7 +582,7 @@ class DCCA_missing(nn.Module):
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
 
             result1   = self.model1( X1, size_factor1)
-            latent_z1 = result1['latent_z1'].to("cuda:1")
+            latent_z1 = result1['latent_z1'].to("cuda:0")
             recons_y  = self.model2.decoder( latent_z1 )
 
             recons_data.append( recons_y.data.cpu().numpy() )
@@ -606,7 +606,7 @@ class DCCA_missing(nn.Module):
 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
@@ -634,7 +634,7 @@ class DCCA_missing(nn.Module):
 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
-                X2, size_factor2 = X2.to("cuda:1"), size_factor2.to("cuda:1")
+                X2, size_factor2 = X2.to("cuda:0"), size_factor2.to("cuda:0")
 
             X1, size_factor1 = Variable( X1 ), Variable( size_factor1 )
             X2, size_factor2 = Variable( X2 ), Variable( size_factor2 )
