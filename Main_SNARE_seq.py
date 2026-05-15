@@ -31,8 +31,8 @@ def train_with_argas( args ):
     args.outdir     =  './Example_test/'
     model_file      =  os.path.join( args.outdir, 'model_DCCA.pth.tar' )
 
-    RNA_path = '/content/Replication_DDCA/data/PBMC/RNA.h5ad'
-    ATAC_path = '/content/Replication_DDCA/data/PBMC/ATAC.h5ad'
+    RNA_path = '/content/Replication_DCCA/data/PBMC/RNA.h5ad'
+    ATAC_path = '/content/Replication_DCCA/data/PBMC/ATAC.h5ad'
 
     adata, adata1, train_index, test_index, label_ground_truth, _ = read_dataset( File_RNA = RNA_path,
                                                                                   File_ATAC = ATAC_path,
