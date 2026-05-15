@@ -120,9 +120,13 @@ class VAE(nn.Module):
         ##calculate KL loss for Gaussian distribution
         mean             =  torch.zeros_like(mean_1)
         scale            =  torch.ones_like(logvar_1)
-        kl_divergence_z  =  kl( Normal(mean_1, logvar_1), 
-                                Normal(mean, scale)).sum(dim=1)
-
+        # kl_divergence_z  =  kl( Normal(mean_1, logvar_1), 
+        #                         Normal(mean, scale)).sum(dim=1)
+        kl_divergence_z = kl(
+            Normal(mean_1, torch.exp(0.5 * logvar_1)),   # std = exp(0.5 * logvar)
+            Normal(mean, torch.sqrt(scale)) # std = sqrt(var)
+        ).sum(dim=1)
+        
         atten_loss1 = torch.tensor(0.0)
         if latent_pre is not None and latent_pre_hidden is not None:
 
