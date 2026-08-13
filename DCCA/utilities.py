@@ -14,6 +14,7 @@ import pandas as pd
 import scanpy as sc
 import os
 import time
+import random
 import argparse
 import scipy as sp
 import torch
@@ -29,6 +30,20 @@ import operator
 
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder, scale
 from sklearn.model_selection import train_test_split
+
+def setup_seed( seed ):
+    # Fix all RNG sources: python, numpy, torch CPU/GPU; force deterministic cuDNN
+    random.seed( seed )
+    np.random.seed( seed )
+    torch.manual_seed( seed )
+    torch.cuda.manual_seed_all( seed )
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark     = False
+    try:
+        # requires CUBLAS_WORKSPACE_CONFIG=:4096:8 to be set in the environment
+        torch.use_deterministic_algorithms( True, warn_only = True )
+    except ( AttributeError, TypeError ):
+        pass
 
 def parameter_setting():
     
