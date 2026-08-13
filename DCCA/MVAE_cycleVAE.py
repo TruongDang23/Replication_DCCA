@@ -533,14 +533,16 @@ class DCCA(nn.Module):
 
         kmeans1 = KMeans( n_clusters = self.args.cluster1, n_init = 5, random_state = 200 )
         kmeans2 = KMeans( n_clusters = self.args.cluster2, n_init = 5, random_state = 200 )
+        kmeans_joint = KMeans( n_clusters = self.args.cluster1, n_init = 5, random_state = 200 )
 
         latent_code_rna  = []
         latent_code_atac = []
 
         ARI_score1, NMI_score1 = -100, -100
         ARI_score2, NMI_score2 = -100, -100
-        
-        for batch_idx, ( X1, _, size_factor1, X2, _, size_factor2 ) in enumerate(dataloader): 
+        ARI_joint,  NMI_joint  = -100, -100
+
+        for batch_idx, ( X1, _, size_factor1, X2, _, size_factor2 ) in enumerate(dataloader):
 
             if self.args.use_cuda:
                 X1, size_factor1 = X1.to("cuda:0"), size_factor1.to("cuda:0")
@@ -562,11 +564,18 @@ class DCCA(nn.Module):
         NMI_score1 = round( normalized_mutual_info_score( self.ground_truth, pred_z1,  average_method='max' ), 3 )
         ARI_score1 = round( metrics.adjusted_rand_score( self.ground_truth, pred_z1 ), 3 )
 
-        pred_z2    = kmeans1.fit_predict( latent_code_atac )
+        pred_z2    = kmeans2.fit_predict( latent_code_atac )
         NMI_score2 = round( normalized_mutual_info_score( self.ground_truth, pred_z2,  average_method='max' ), 3 )
         ARI_score2 = round( metrics.adjusted_rand_score( self.ground_truth, pred_z2 ), 3 )
 
-        print('scRNA-ARI: ' + str(ARI_score1) + ' NMI: ' + str(NMI_score1) + ' scEpigenomics-ARI: ' + str(ARI_score2) + ' NMI: ' + str(NMI_score2) )
+        latent_joint = np.concatenate( [latent_code_rna, latent_code_atac], axis=1 )
+        pred_joint   = kmeans_joint.fit_predict( latent_joint )
+        NMI_joint    = round( normalized_mutual_info_score( self.ground_truth, pred_joint, average_method='max' ), 3 )
+        ARI_joint    = round( metrics.adjusted_rand_score( self.ground_truth, pred_joint ), 3 )
+
+        print('scRNA-ARI: ' + str(ARI_score1) + ' NMI: ' + str(NMI_score1) +
+              ' scEpigenomics-ARI: ' + str(ARI_score2) + ' NMI: ' + str(NMI_score2) +
+              ' Joint-ARI: ' + str(ARI_joint) + ' NMI: ' + str(NMI_joint) )
         return NMI_score1, ARI_score1, NMI_score2, ARI_score2
 
     def encodeBatch(self, total_loader):
