@@ -1,0 +1,10 @@
+# Pinned versions for Google Colab (Python 3.12 runtime)
+# Do NOT use `python setup.py install` - it pulls pre-release eggs (e.g. scanpy 1.13.0a1)
+# Install with: pip install -r requirements_colab.txt, then RESTART the runtime.
+numpy==2.0.2
+numba==0.60.0
+llvmlite==0.43.0
+scanpy<1.12
+pandas>=1.1.5
+scipy>=1.5.2
+scikit-learn>=0.23.2
