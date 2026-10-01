@@ -8,10 +8,12 @@ import pandas as pd
 import os
 import torch
 import torch.utils.data as data_utils
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 
 #from MVAE_model import VAE, AE, MVAE_POE
 from DCCA.utilities import read_dataset, normalize, parameter_setting, save_checkpoint, load_checkpoint
 from DCCA.MVAE_cycleVAE import DCCA
+from DCCA.export import save_embedding
 
 def train_with_argas( args ):
 
@@ -28,7 +30,7 @@ def train_with_argas( args ):
     args.flr2       =  0.0005
 
     args.workdir    =  './Example_test/'
-    args.outdir     =  './Example_test/'
+    args.outdir     =  '/content/DCCA_out/'
     model_file      =  os.path.join( args.outdir, 'model_DCCA.pth.tar' )
 
     RNA_path = '/content/Replication_DCCA/data/PBMC/RNA.h5ad'
@@ -145,7 +147,29 @@ def train_with_argas( args ):
 
     NMI_score1, ARI_score1, NMI_score2, ARI_score2  =  model.fit_model(train_loader, test_loader, total_loader, "RNA" )
 
-    save_checkpoint(model, model_file ) 
+    # ── Export .npz cho UMAP (EXPORT_NPZ_GUIDE.md) ───────────────────────────
+    # Kết quả KMeans cuối cùng (evluation_metrics) trên latent RNA, trạng thái final.
+    # total_loader shuffle=False → hàng i của Z/y_pred ↔ adata.obs_names[i]
+    METHOD, DATASET = "DCCA", "PBMC"
+    Z      = model.last_eval["latent_rna"]    # (N, Zdim_1)
+    y_pred = model.last_eval["pred_rna"]      # (N,)
+    y_true = adata.obs['Group'].astype(str).to_numpy()
+
+    save_embedding(
+        out_path   = os.path.join( args.outdir, f"{METHOD}_{DATASET}.npz" ),
+        emb        = Z,
+        cell_ids   = adata.obs_names.to_numpy().astype(str),
+        y_true     = y_true,
+        y_pred     = y_pred,
+        method     = METHOD,
+        ari        = adjusted_rand_score( y_true, y_pred ),
+        nmi        = normalized_mutual_info_score( y_true, y_pred ),
+        emb_source = "model1.latent_z1 (RNA, eval -> mean)",
+        checkpoint = "final",
+        nmi_max    = normalized_mutual_info_score( y_true, y_pred, average_method='max' ),  # cách DCCA tính NMI
+    )
+
+    save_checkpoint(model, model_file )
 
     #cluster_rna, cluster_epi = model.predict_cluster_by_kmeans(total_loader)
 

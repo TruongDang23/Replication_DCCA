@@ -573,6 +573,11 @@ class DCCA(nn.Module):
         NMI_joint    = round( normalized_mutual_info_score( self.ground_truth, pred_joint, average_method='max' ), 3 )
         ARI_joint    = round( metrics.adjusted_rand_score( self.ground_truth, pred_joint ), 3 )
 
+        # lưu lại latent + nhãn cụm của lần đánh giá gần nhất để export .npz (không đổi logic gom cụm)
+        self.last_eval = dict( latent_rna   = latent_code_rna,  pred_rna   = pred_z1,
+                               latent_atac  = latent_code_atac, pred_atac  = pred_z2,
+                               latent_joint = latent_joint,     pred_joint = pred_joint )
+
         print('scRNA-ARI: ' + str(ARI_score1) + ' NMI: ' + str(NMI_score1) +
               ' scEpigenomics-ARI: ' + str(ARI_score2) + ' NMI: ' + str(NMI_score2) +
               ' Joint-ARI: ' + str(ARI_joint) + ' NMI: ' + str(NMI_joint) )
