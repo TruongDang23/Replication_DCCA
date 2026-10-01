@@ -11,11 +11,14 @@ import torch.utils.data as data_utils
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 
 #from MVAE_model import VAE, AE, MVAE_POE
-from DCCA.utilities import read_dataset, normalize, parameter_setting, save_checkpoint, load_checkpoint
+from DCCA.utilities import read_dataset, normalize, parameter_setting, save_checkpoint, load_checkpoint, setup_seed
 from DCCA.MVAE_cycleVAE import DCCA
 from DCCA.export import save_embedding
 
 def train_with_argas( args ):
+
+    setup_seed( args.seed )
+    print( f"[seed] Fixed random seed = {args.seed}" )
 
     args.batch_size     = 64
     args.epoch_per_test = 10
@@ -29,12 +32,12 @@ def train_with_argas( args ):
     args.lr2        =  0.005
     args.flr2       =  0.0005
 
-    args.workdir    =  './Example_test/'
-    args.outdir     =  '/content/DCCA_out/'
+    args.workdir    =  args.outdir
+    os.makedirs( args.outdir, exist_ok = True )
     model_file      =  os.path.join( args.outdir, 'model_DCCA.pth.tar' )
 
-    RNA_path = '/content/Replication_DCCA/data/PBMC/RNA.h5ad'
-    ATAC_path = '/content/Replication_DCCA/data/PBMC/ATAC.h5ad'
+    RNA_path  = args.File1
+    ATAC_path = args.File2
 
     adata, adata1, train_index, test_index, label_ground_truth, _ = read_dataset(
         File_RNA=RNA_path,
