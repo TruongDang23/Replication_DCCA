@@ -115,19 +115,19 @@ def train_with_argas( args ):
 
     train           = data_utils.TensorDataset( torch.from_numpy( adata[train_index].X.toarray() ),
                                                 torch.from_numpy( adata.raw[train_index].X.toarray() ), 
-                                                torch.from_numpy( adata.obs['size_factors'][train_index].values ),
+                                                torch.from_numpy( adata.obs['size_factors'].values[train_index] ),
                                                 torch.from_numpy( adata1[train_index].X.toarray() ),
                                                 torch.from_numpy( adata1.raw[train_index].X.toarray() ), 
-                                                torch.from_numpy( adata1.obs['size_factors'][train_index].values ))
+                                                torch.from_numpy( adata1.obs['size_factors'].values[train_index] ))
 
     train_loader    = data_utils.DataLoader( train, batch_size = args.batch_size, shuffle = True )
 
     test            = data_utils.TensorDataset( torch.from_numpy( adata[test_index].X.toarray() ),
                                                 torch.from_numpy( adata.raw[test_index].X.toarray() ), 
-                                                torch.from_numpy( adata.obs['size_factors'][test_index].values ),
+                                                torch.from_numpy( adata.obs['size_factors'].values[test_index] ),
                                                 torch.from_numpy( adata1[test_index].X.toarray() ),
                                                 torch.from_numpy( adata1.raw[test_index].X.toarray() ), 
-                                                torch.from_numpy( adata1.obs['size_factors'][test_index].values ) )
+                                                torch.from_numpy( adata1.obs['size_factors'].values[test_index] ) )
 
     test_loader     = data_utils.DataLoader( test, batch_size = len(test_index), shuffle = False )
     
