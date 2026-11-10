@@ -13,7 +13,7 @@ from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 #from MVAE_model import VAE, AE, MVAE_POE
 from DCCA.utilities import read_dataset, normalize, parameter_setting, save_checkpoint, load_checkpoint, setup_seed
 from DCCA.MVAE_cycleVAE import DCCA
-from DCCA.export import save_embedding
+from DCCA.export import save_embedding, save_cluster_csv
 
 def train_with_argas( args ):
 
@@ -170,6 +170,12 @@ def train_with_argas( args ):
         emb_source = "model1.latent_z1 (RNA, eval -> mean)",
         checkpoint = "final",
         nmi_max    = normalized_mutual_info_score( y_true, y_pred, average_method='max' ),  # cách DCCA tính NMI
+    )
+
+    save_cluster_csv(
+        out_path = os.path.join( args.outdir, f"{METHOD}_{DATASET}_clusters.csv" ),
+        cell_ids = adata.obs_names.to_numpy().astype(str),
+        y_pred   = y_pred
     )
 
     save_checkpoint(model, model_file )
